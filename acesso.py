@@ -100,7 +100,7 @@ with col2:
                 if bcrypt.checkpw(senha.encode(), senha_hash.encode()):
                     if resultado[3]:
                         st.success("✅ Acesso liberado!")
-                        st.markdown("[Ir para o DATA SELLER](https://dataseller.streamlit.app/dados)")
+                        st.markdown("[Ir para o DATA SELLER](https://dataselller.streamlit.app/)")
                     else:
                         st.warning("🔒 Assinatura inativa. Faça sua assinatura abaixo.")
                 else:
