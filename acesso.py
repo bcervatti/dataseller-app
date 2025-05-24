@@ -44,6 +44,33 @@ with col1:
     st.markdown("## Bem-vindo(a) novamente")
     st.markdown("Vamos te ajudar a se conectar")
 
+# Verifica se há access_token no retorno da URL
+params = st.query_params
+
+if "access_token" in params:
+    access_token = params["access_token"]
+    headers = {"Authorization": f"Bearer {access_token}"}
+    user_info = requests.get("https://www.googleapis.com/oauth2/v2/userinfo", headers=headers).json()
+
+    email_google = user_info.get("email")
+
+    if email_google:
+        conn = sqlite3.connect("usuarios.db")
+        c = conn.cursor()
+
+        # Verifica se já existe esse email no banco
+        c.execute("SELECT * FROM usuarios WHERE email = ?", (email_google,))
+        existe = c.fetchone()
+
+        # Se não existir, insere com assinatura inativa
+        if not existe:
+            c.execute("INSERT INTO usuarios (email, documento, senha_hash, assinatura_ativa) VALUES (?, ?, ?, 0)", (email_google, "", "", 0))
+            conn.commit()
+
+        conn.close()
+        st.success("✅ Acesso liberado via Google!")
+        st.markdown("[Ir para o DATA SELLER](https://dataseller.streamlit.app/mr-anderson-app)")
+
 with col2:
     st.markdown("### Entrar")
 
