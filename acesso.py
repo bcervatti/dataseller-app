@@ -1,7 +1,7 @@
-import streamlit as st
+import streamlit as st # type: ignore
 import sqlite3
 import re
-import bcrypt
+import bcrypt # type: ignore
 import requests
 import urllib.parse
 
@@ -75,6 +75,7 @@ with col2:
     st.markdown("### Entrar")
 
     # Login com Google
+   
     client_id = "197511749083-09dujn1dvd2ebdd76dmtv8p9e525okgg.apps.googleusercontent.com"
     redirect_uri = "https://dataseller.streamlit.app"
     scope = "https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile"
