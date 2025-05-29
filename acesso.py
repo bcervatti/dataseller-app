@@ -81,7 +81,7 @@ with col2:
     oauth_url = (
         f"https://accounts.google.com/o/oauth2/v2/auth?response_type=token"
         f"&client_id={client_id}"
-        f"&redirect_uri={urllib.parse.quote(redirect_uri)}"
+        f"&redirect_uri={urllib.parse.quote(redirect_uri, safe='')}"
         f"&scope={urllib.parse.quote(scope)}&prompt=select_account"
     )
     ##st.markdown(f"<a href='{oauth_url}' class='login-button'> Acesso conta Google </a>", unsafe_allow_html=True)
