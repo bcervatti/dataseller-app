@@ -7,9 +7,10 @@ import pandas as pd
 import streamlit as st # type: ignore
 import tempfile
 import zipfile
+import io
 from datetime import datetime
 
-st.set_page_config(page_title="DATA SELLER v1.1 | Amplie suas vendas e fortaleça sua comunidade", layout="wide")
+st.set_page_config(page_title="DATA SELLER v1.2 | Amplie suas vendas e fortaleça sua comunidade", layout="wide")
 st.markdown(
     """
     <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
@@ -23,8 +24,9 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-st.image("logo.png", width=180)
-##st.title("📊 DATA SELLER v1.1")
+
+st.image("banner.png", use_container_width=True)
+
 st.markdown("1. Acesse seu marketplace ou ERP")
 st.markdown("2. Baixe individualmente ou em lote o XML de suas vendas")
 st.markdown("3. Importe seus arquivos para o Data Seller")
@@ -52,22 +54,8 @@ st.markdown(
 )
 
 if uploaded_files:
-    processar = st.markdown(
-        f"""
-        <form action="#" method="post">
-            <button class="processar-button" type="submit">Processar</button>
-        </form>
-        """,
-        unsafe_allow_html=True
-    )
+    
 
-    # Botão alternativo invisível que ativa o processamento real
-    if st.button("Clique aqui para Processar (invisível)"):
-        st.session_state.run_processing = True
-
-    if st.session_state.get("run_processing"):
-        st.session_state.run_processing = False
-        # (resto do processamento segue aqui normalmente...)
     temp_dir = tempfile.TemporaryDirectory()
     path_dir = temp_dir.name
     dados = []
@@ -108,7 +96,7 @@ if uploaded_files:
             root = tree.getroot()
             infNFe = root.find('.//ns:infNFe', ns)
             if infNFe is None:
-                infNFe = root.find('.//infNFe')  # fallback sem namespace
+                infNFe = root.find('.//infNFe')
             if infNFe is None:
                 continue
 
@@ -118,8 +106,11 @@ if uploaded_files:
             numero_venda = root.findtext('.//ns:ide/ns:nNF', default='', namespaces=ns)
             nome_cliente = root.findtext('.//ns:dest/ns:xNome', default='', namespaces=ns)
             telefone = root.findtext('.//ns:dest/ns:enderDest/ns:fone', default='', namespaces=ns)
+            email = root.findtext('.//ns:dest/ns:email', default='', namespaces=ns)
+            estado = root.findtext('.//ns:dest/ns:enderDest/ns:UF', default='', namespaces=ns)
             sku = root.findtext('.//ns:det/ns:prod/ns:cProd', default='', namespaces=ns)
             xped = root.findtext('.//ns:det/ns:prod/ns:xPed', default='', namespaces=ns)
+            produto = root.findtext('.//ns:det/ns:prod/ns:xProd', default='', namespaces=ns)
             nf_cancelada = 'Sim' if chave in canceladas else 'Não'
 
             telefone_formatado = ''.join(filter(str.isdigit, telefone))
@@ -135,8 +126,11 @@ if uploaded_files:
                 'Nome': nome_cliente,
                 'Telefone': telefone_formatado,
                 'WhatsApp': link_whatsapp,
+                'E-mail': email,
+                'Estado': estado,
                 'Número da Venda': numero_venda,
                 'Número do Pedido': xped,
+                'Produto': produto,
                 'Observações': f"SKU: {sku} | Cancelada: {nf_cancelada}",
                 'Notas Internas': ''
             })
@@ -151,13 +145,106 @@ if uploaded_files:
         st.success(f"✅ {len(df)} contatos processados com sucesso!")
 
         def make_clickable(link):
-            return f'<a href="{link}" target="_blank">📲 Abrir</a>' if link else ''
+            return f'<a href="{link}" target="_blank">📞 Abrir</a>' if link else ''
 
         df['WhatsApp'] = df['WhatsApp'].apply(make_clickable)
 
         st.markdown("### Resultado")
         st.markdown("Clique no ícone do WhatsApp para iniciar uma conversa com o cliente.")
-        st.markdown("Campo 'Notas Internas' está disponível para observações manuais.")
-        st.markdown(df.to_html(escape=False, index=False), unsafe_allow_html=True)
+
+        # Criar um buffer para o Excel
+        excel_buffer = io.BytesIO()
+        df.to_excel(excel_buffer, index=False, engine='openpyxl')
+        excel_buffer.seek(0)
+
+        # Botão para download
+        st.download_button(
+        label="📥 Baixar Excel com os dados",
+        data=excel_buffer,
+        file_name="data_seller_export.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+
+        with st.expander("🔍 Filtrar dados por coluna"):
+            col1, col2, col3, col4, col5, col6, col7 = st.columns(7)
+            col8, col9 = st.columns(2)
+            filtros = {
+                'Nome': col1.text_input("Filtrar Nome"),
+                'Telefone': col2.text_input("Filtrar Telefone"),
+                'E-mail': col8.text_input("Filtrar E-mail"),
+                'Estado': col9.text_input("Filtrar Estado"),
+                'Número da Venda': col3.text_input("Filtrar Nº Venda"),
+                'Número do Pedido': col4.text_input("Filtrar Nº Pedido"),
+                'Produto': col5.text_input("Filtrar Produto"),
+                'Observações': col6.text_input("Filtrar Observações"),
+                'Notas Internas': col7.text_input("Filtrar Notas Internas")
+            }
+            for coluna, valor in filtros.items():
+                if valor:
+                    df = df[df[coluna].astype(str).str.contains(valor, case=False, na=False)]
+
+        st.markdown("""
+    <style>
+    .styled-table {
+        font-size: 13px;
+        border-collapse: collapse;
+        width: 100%;
+    }
+    .styled-table th, .styled-table td {
+        padding: 6px 10px;
+        text-align: middle;
+    }
+    .styled-table tr:nth-child(even) {
+        background-color: #f9f9f9;
+    }
+    </style>
+""", unsafe_allow_html=True)
+        st.markdown(df.to_html(classes="styled-table", escape=False, index=False), unsafe_allow_html=True)
+        
     else:
         st.warning("Nenhum contato foi encontrado.")
+
+    with st.expander("🔒 Política de Privacidade"):
+        st.markdown("""
+        ## 🔒 Política de Privacidade
+
+        O DATA SELLER respeita sua privacidade e está comprometido com a proteção dos dados pessoais processados na plataforma.
+
+        ### 📥 Coleta de Dados
+
+        Os dados utilizados no sistema são fornecidos diretamente pelo usuário, por meio do upload manual de arquivos XML de vendas (Notas Fiscais Eletrônicas). Não realizamos qualquer coleta automática ou em segundo plano.
+
+        ### 🧠 Finalidade
+
+        O objetivo do sistema é exclusivamente facilitar o acesso aos dados de venda para fins legítimos de:
+
+        - Organização de contatos comerciais;
+        - Comunicação com compradores (ex: envio de mensagens relacionadas à compra);
+        - Gestão interna de vendas e histórico.
+
+        Não utilizamos os dados para envio de publicidade não solicitada.
+
+        ### 🛑 Compartilhamento
+
+        Nenhum dado é compartilhado com terceiros, parceiros, agências ou plataformas externas. O uso é 100% local e sob controle do próprio usuário.
+
+        ### ⏳ Armazenamento
+
+        Os dados processados não são salvos em servidores. O processamento ocorre localmente e temporariamente durante o uso do sistema.
+
+        ### 🔐 Segurança
+
+        Se o sistema estiver acessível via internet, medidas de segurança como login, autenticação e controle de acesso são aplicadas para proteger os dados contra acessos não autorizados.
+
+        ### 📄 Base Legal
+
+        O tratamento dos dados segue as bases legais previstas na LGPD, especialmente:
+
+        - **Execução de contrato** (venda já realizada);
+        - **Legítimo interesse** do fornecedor em contatar o cliente para suporte, confirmação ou relacionamento;
+        - **Consentimento**, caso necessário para comunicações adicionais.
+
+        ### 📞 Dúvidas
+
+        Em caso de dúvidas, entre em contato com o responsável pela operação do sistema.
+        """)
