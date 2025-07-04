@@ -144,7 +144,7 @@ with col2:
 st.divider()
 
 # Assinatura
-st.markdown("#### Assine por apenas **R$ 9,99/mês**")
+st.markdown("#### Assine por apenas **R$ 19,90/mês**")
 st.markdown("e comece hoje mesmo a fidelizar seus clientes")
 link_assinatura = "https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=2c93808496eba93f0196ef4d59bc01a4"
 ##st.markdown(f"[🚀 Assinar Agora]({link_assinatura})")
