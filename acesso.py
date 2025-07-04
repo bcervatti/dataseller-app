@@ -72,7 +72,7 @@ if "access_token" in params:
         st.markdown("[Ir para o DATA SELLER](https://dataseller.streamlit.app/mr-anderson-app)")
 
 with col2:
-    st.markdown("### Entrar")
+    st.markdown("### Entrar no Data Seller")
 
     # Login com Google
    
